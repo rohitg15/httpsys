@@ -39,6 +39,28 @@ public:
 	
 	ThreadContext();
 
+	ThreadContext(HttpRequestType reqType, HttpSendResponseCallback const& responseCallback)
+		:
+		m_reqType(reqType),
+		m_sendHttpResponse(responseCallback)
+	{};
+
+	ThreadContext(ThreadContext const& other)
+		:
+		m_reqType(other.m_reqType),
+		m_sendHttpResponse(other.m_sendHttpResponse)
+	{}
+
+	ThreadContext& operator=(ThreadContext const& other)
+	{
+		if (this != &other)
+		{
+			m_reqType = other.m_reqType;
+			m_sendHttpResponse = other.m_sendHttpResponse;
+		}
+		return *this;
+	}
+
 	void UpdateRequestType(
 		enum HttpRequestType reqType
 	);
@@ -46,7 +68,6 @@ public:
 	void RegisterSendResponseCallback(
 		HttpSendResponseCallback f
 	);
-
 
 	void Execute();
 

@@ -7,7 +7,7 @@
 #include <atomic>
 #include <vector>
 
-namespace filesafe
+namespace httpsys
 {
     template<class T>
     class ThreadPool
@@ -31,9 +31,9 @@ namespace filesafe
             m_q.ReleaseQueue();
         }
 
-        bool AddJob(T job)
+        void AddJob(T const& job)
         {
-            return m_q.Enqueue(job);
+            m_q.Enqueue(job);
         }
 
         void Join()
@@ -69,7 +69,7 @@ namespace filesafe
             }
         }
 
-        filesafe::ThreadSafeQueue<T> m_q;
+        httpsys::ThreadSafeQueue<T> m_q;
         std::atomic<bool> m_killThreads;
         std::vector<std::thread> m_threads;
     };

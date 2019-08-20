@@ -11,7 +11,7 @@ HttpSendResponseCallback::HttpSendResponseCallback()
 
 }
 
-HttpSendResponseCallback::HttpSendResponseCallback(HttpSendResponseCallback& other)
+HttpSendResponseCallback::HttpSendResponseCallback(HttpSendResponseCallback const& other)
 {
 	m_hReqQueue = other.m_hReqQueue;
 	m_buf = other.m_buf;
@@ -21,7 +21,7 @@ HttpSendResponseCallback::HttpSendResponseCallback(HttpSendResponseCallback& oth
 	m_pEntityString = other.m_pEntityString;
 }
 
-HttpSendResponseCallback& HttpSendResponseCallback::operator=(HttpSendResponseCallback& other)
+HttpSendResponseCallback& HttpSendResponseCallback::operator=(HttpSendResponseCallback const& other)
 {
 	if (this != &other)
 	{

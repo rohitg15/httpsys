@@ -32,9 +32,9 @@ class HttpSendResponseCallback
 public:
 	HttpSendResponseCallback();
 
-	HttpSendResponseCallback(HttpSendResponseCallback& other);
+	HttpSendResponseCallback(HttpSendResponseCallback const& other);
 
-	HttpSendResponseCallback& operator=(HttpSendResponseCallback& other);
+	HttpSendResponseCallback& operator=(HttpSendResponseCallback const& other);
 
 	HttpSendResponseCallback(
 		HANDLE hReqQueue,

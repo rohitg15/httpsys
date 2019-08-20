@@ -2,6 +2,8 @@
 
 
 ThreadContext::ThreadContext()
+	:
+	m_reqType(HttpRequestType::HTTP_GET)
 {}
 
 void ThreadContext::UpdateRequestType(

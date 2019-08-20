@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	{
 		p->Cleanup();
 	});
-	std::wstring url = L"https://127.0.0.1:8080/test0";
+	std::wstring url = L"http://127.0.0.1:8080/test0";
 	pServer->AddUrl(url);
 	std::wcout << L"http.SYS listening for incoming requests at : " << url << std::endl;
 	while (!KILL_SERVER)

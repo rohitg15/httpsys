@@ -1,4 +1,5 @@
 set(libhttpserver_SRCS
+   Utils.h
    HttpDispatchTable.h
    HttpDispatchTable.cpp
    HttpServer.h

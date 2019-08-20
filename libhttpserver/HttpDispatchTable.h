@@ -22,17 +22,12 @@
 
 #pragma comment(lib, "httpapi.lib")
 
-
-
 class HttpDispatchTable
 {
-
 public:
 	HttpDispatchTable();
-
-	HttpDispatchTable(HttpDispatchTable&) = delete;
-
-	HttpDispatchTable& operator=(HttpDispatchTable&) = delete;
+	HttpDispatchTable(HttpDispatchTable const&) = delete;
+	HttpDispatchTable& operator=(HttpDispatchTable const&) = delete;
 
 	static DWORD SendHttpResponse(
 		HANDLE hReqQueue,
@@ -41,10 +36,5 @@ public:
 		char* pReason,
 		char* pEntityString
 	);
-
-	
-private:
-
 };
-
 #endif		//	_HTTP_DISPATCH_TABLE_H_

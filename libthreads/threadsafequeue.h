@@ -1,97 +1,90 @@
 #ifndef _THREAD_SAFE_QUEUE_H_
 #define _THREAD_SAFE_QUEUE_H_
 
-#include <queue>
 #include <mutex>
+#include <deque>
+#include <memory>
 #include <atomic>
-#include <condition_variable>
-#include <thread>
 
-namespace filesafe
+
+namespace httpsys
 {
-    template<class T>
-    class ThreadSafeQueue
-    {
-    public:
-        ThreadSafeQueue()
-        {
-            m_isValid = true;
-        }
 
-        bool Enqueue(
-            T job
-        )
-        {
-            std::unique_lock<std::mutex> lock(m_qLock);     //  acquire lock
-            m_cndReleaseJob.wait(lock, [this] {         //  wait until queue has space
-                return (m_q.size() <= MAX_QUEUE_ITEMS) || !m_isValid;
-            });
-            if (!m_isValid)                                 //  Received exit signal
-            {
-                return false;
-            }
-            m_q.emplace(job);
-            m_cndAcquireJob.notify_one();                   //  notify one thread that a job has been added
-            return true;
-        }                                                   //  release lock here
+	template <typename T, typename Container = std::deque<T> >
+	class ThreadSafeQueue
+	{
+	public:
+		ThreadSafeQueue()
+		{
+			isExit_ = false;
+		}
 
-        bool Dequeue(T& job)
-        {
-            std::unique_lock<std::mutex> lock(m_qLock);     //  acquire lock
-            std::thread::id this_id = std::this_thread::get_id();
-           
-            m_cndAcquireJob.wait(lock, [this] {
-                return !m_q.empty() || !m_isValid;
-            });                                             //  give up lock and wait until a job is added to the queue
+		ThreadSafeQueue(ThreadSafeQueue const&) = delete;
+		ThreadSafeQueue& operator=(ThreadSafeQueue const&) = delete;
 
-            if (!m_isValid)                                 //  Received Exit signal
-            {
-                return false;
-            }
-           
-            job = std::move(m_q.front());
-            size_t oldSize = m_q.size();
-            m_q.pop();
+		void Enqueue(T const& item)
+		{
+			{
+				std::lock_guard<std::mutex> guard(mtx_);
+				q_.emplace_back(item);
+			}
+			cv_.notify_one();
+		}
 
-            if (oldSize == MAX_QUEUE_ITEMS)               // notify producer thread if the queue was previously full
-            {
-                m_cndReleaseJob.notify_one();
-            }
-            return true;
-        }                                               //  release lock
+		std::shared_ptr<T> Dequeue()
+		{
+			std::unique_lock<std::mutex> lock(mtx_);
+			cv_.wait(lock, [this]() {
+				return (!this->q_.empty() || isExit_;)
+				});
+			if (isExit_)
+			{
+				return nullptr;
+			}
+			T item = std::move(q_.front());
+			std::shared_ptr<T> itemSPtr = std::make_shared<T>(item);
+			q_.pop_front();
+			return itemSPtr;
+		}
 
-        bool IsEmpty()
-        {
-            std::lock_guard<std::mutex> lock{m_qLock};     //  acquire lock
-            return m_q.empty();
-        }                                                   //  release lock
+		bool Dequeue(T& item)
+		{
+			std::unique_lock<std::mutex> lock(mtx_);
+			cv_.wait(lock, [this]() {
+				return (!this->q_.empty() || isExit_);
+				});
+			if (isExit_)
+			{
+				return false;
+			}
+			item = std::move(q_.front());
+			q_.pop_front();
+			return true;
+		}
 
-        size_t Count()
-        {
-            std::lock_guard<std::mutex> lock{m_qLock};     //  acquire lock
-            return m_q.size();                              
-        }                                                   //  release lock
+		bool Empty() const
+		{
+			std::lock_guard<std::mutex> guard(mtx_);
+			return q_.empty();
+		}
 
-        void ReleaseQueue()
-        {
-            m_isValid = false;
-            m_cndAcquireJob.notify_all();
-            m_cndReleaseJob.notify_all();
-        }
+		void ReleaseQueue()
+		{
+			std::lock_guard<std::mutex> guard(mtx_);
+			isExit_ = true;
+		}
 
-        static const size_t MAX_QUEUE_ITEMS = 1024;
-    private:
-        std::queue<T> m_q;
-        std::mutex m_qLock;
-        std::condition_variable m_cndAcquireJob; 
-        std::condition_variable m_cndReleaseJob;
-        std::atomic_bool m_isValid;
-        
-    };
+		~ThreadSafeQueue()
+		{
+			ReleaseQueue();
+		}
 
-
-
+	private:
+		Container q_;
+		mutable std::mutex mtx_;
+		std::condition_variable cv_;
+		bool isExit_;
+	};
 }
 
-
-#endif  //  _THREAD_SAFE_QUEUE_H_
+#endif	//	_THREAD_SAFE_QUEUE_H_

@@ -59,7 +59,7 @@ private:
 
 	std::vector<std::wstring> m_urls;
 	/*HttpDispatchTable m_httpDispatchTbl;*/
-	std::unique_ptr<filesafe::ThreadPool<ThreadContext>> m_pThreadPool;
+	std::unique_ptr<httpsys::ThreadPool<ThreadContext>> m_pThreadPool;
 	HANDLE m_hReqQueue;
 
 };

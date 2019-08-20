@@ -3,12 +3,13 @@
 #include <iostream>
 #include <functional>
 #include <memory>
+#include <Utils.h>
 
 HttpServer::HttpServer(
 	uint32_t numThreads
 )
 	: m_hReqQueue(NULL),
-	  m_pThreadPool(std::make_unique<filesafe::ThreadPool<ThreadContext>>(numThreads))
+	  m_pThreadPool(std::make_unique<httpsys::ThreadPool<ThreadContext>>(numThreads))
 {
 	std::cout << "Initialized HttpServer" << std::endl;
 	HTTPAPI_VERSION apiVersion = HTTPAPI_VERSION_1;
@@ -48,6 +49,7 @@ void HttpServer::AddUrl(
 		std::cout << "Error: " << ret << std::endl;
 		throw std::runtime_error("Error in HttpAddUrl");
 	}
+	std::wcout << L"Added url : " << url << L"\n";
 	m_urls.emplace_back(url);
 }
 
@@ -65,11 +67,11 @@ void HttpServer::HandleRequests(
 	{
 		ULONG result = 0;
 		ULONG bytesRead = 0;
-
 		PHTTP_REQUEST pHttpRequest = reinterpret_cast<PHTTP_REQUEST>(requestBuf.data());
 		receivedMoreData = false;
 
 		RtlZeroMemory(pHttpRequest, requestBufLen);
+
 		result = HttpReceiveHttpRequest(
 			m_hReqQueue,
 			requestId,
@@ -91,16 +93,19 @@ void HttpServer::HandleRequests(
 		else if (ERROR_MORE_DATA == result)
 		{
 			// input buffer too small to handle incoming data
+			ErrorUtils::PrintCSBackupAPIErrorMessage(result);
 			requestBuf.resize(bytesRead, 0x0);
 			receivedMoreData = true;
 		}
 		else if (ERROR_CONNECTION_INVALID == result && !HTTP_IS_NULL_ID(&requestId))
 		{
 			// TCP connection corrupted by peer
+			ErrorUtils::PrintCSBackupAPIErrorMessage(result);
 			HTTP_SET_NULL_ID(&requestId);
 		}
 		else
 		{
+			ErrorUtils::PrintCSBackupAPIErrorMessage(result);
 			break;
 		}
 	} while (receivedMoreData);
@@ -118,12 +123,9 @@ ULONG HttpServer::DispatchRequest(
 		case HttpVerbGET:
 		{
 			std::wcout << L"Got http GET for " << pHttpRequest->CookedUrl.pFullUrl << std::endl;
-			ThreadContext thCtx;
-			thCtx.UpdateRequestType(HttpRequestType::HTTP_GET);
 			HttpSendResponseCallback cb(m_hReqQueue, buf, 200, "OK", "Server Hello!");
-			thCtx.RegisterSendResponseCallback(cb);
+			ThreadContext thCtx{ HttpRequestType::HTTP_GET, cb };
 			m_pThreadPool->AddJob(thCtx);
-
 			break;
 		}
 		case HttpVerbPOST:
